@@ -4,6 +4,7 @@ import com.analyzer.LexicalAnalyzer;
 import com.analyzer.SemanticAnalyzer;
 import com.analyzer.SyntaxAnalyzer;
 import com.model.Token;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
@@ -13,125 +14,209 @@ import java.util.ArrayList;
 public class SwingCompilerUI {
 
     private static ArrayList<Token> tokens;
-
     private static final JTextArea codeArea = new JTextArea();
     private static final JTextArea resultArea = new JTextArea();
 
-    private static final JButton lexicalBtn =
-            createCurvyButton("Lexical<br>Analysis", new Color(220, 20, 60));
+    // Theme state
+    private static boolean isDarkTheme = true;
+    private static JFrame frame;
 
-    private static final JButton syntaxBtn =
-            createCurvyButton("Syntax<br>Analysis", new Color(255, 215, 0));
+    // UI components for theme updates
+    private static JPanel header;
+    private static JPanel buttonBar;
+    private static JLabel titleLabel;
+    private static JSeparator divider;
+    private static JLabel themeToggle;
 
-    private static final JButton semanticBtn =
-            createCurvyButton("Semantic<br>Analysis", new Color(0, 230, 118));
+    // Custom Curvy Button
+    private static class CurvyButton extends JButton {
+        private final Color baseColor;
+        private boolean completed = false;
+
+        public CurvyButton(String text, Color baseColor) {
+            this.baseColor = baseColor;
+            setLayout(new BorderLayout());
+            JLabel label = new JLabel(
+                    "<html><center><b><font color='black'>" + text + "</font></b></center></html>",
+                    SwingConstants.CENTER
+            );
+            label.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            add(label, BorderLayout.CENTER);
+            setContentAreaFilled(false);
+            setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setPreferredSize(new Dimension(180, 70));
+        }
+
+        public void setCompleted(boolean c) {
+            completed = c;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(completed ? baseColor.darker().darker() : baseColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 36, 36);
+            super.paintComponent(g2);
+            g2.dispose();
+        }
+
+        @Override
+        protected void paintBorder(Graphics g) {}
+    }
+
+    private static final CurvyButton lexicalBtn = new CurvyButton("Lexical Analysis", new Color(255, 225, 0));
+    private static final CurvyButton syntaxBtn  = new CurvyButton("Syntax Analysis",  new Color(255, 225, 0));
+    private static final CurvyButton semanticBtn = new CurvyButton("Semantic Analysis", new Color(255, 225, 0));
 
     public static void main(String[] args) {
-        // GUI Look & Feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {}
-
         SwingUtilities.invokeLater(SwingCompilerUI::createGUI);
     }
 
     private static Border createGlowBorder(String title) {
-        Color glowColor = new Color(100, 200, 255);
-        Border line = BorderFactory.createLineBorder(glowColor, 2);
-        Border titleBorder = BorderFactory.createTitledBorder(
-                line, title, 0, 0, new Font("Arial", Font.BOLD, 14), glowColor
-        );
+        Color glow = new Color(255, 225, 0);
+        Border line = BorderFactory.createLineBorder(glow, 2);
+        Border titled = BorderFactory.createTitledBorder(line, title, 0, 0,
+                new Font("Arial", Font.BOLD, 14), glow);
         return BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(10, 10, 10, 10),
-                titleBorder
-        );
+                BorderFactory.createEmptyBorder(10, 10, 10, 10), titled);
     }
 
-    private static JButton createCurvyButton(String text, Color bg) {
-        JButton btn = new JButton("<html><center><b>" + text + "</b></center></html>") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 36, 36);
-                super.paintComponent(g2);
-                g2.dispose();
-            }
+    // Safe theme updater — only touches components that exist
+    private static void applyTheme() {
+        if (frame == null) return;
 
-            @Override
-            protected void paintBorder(Graphics g) {}
-        };
+        Color bg = isDarkTheme ? Color.BLACK : new Color(252, 252, 252);
+        Color fg = isDarkTheme ? Color.WHITE : Color.BLACK;
+        Color resultFg = isDarkTheme ? Color.CYAN : new Color(0, 120, 215);
+        Color headerBg = isDarkTheme ? Color.BLACK : Color.WHITE;
+        Color titleFg = new Color(255, 225, 0);
+        Color toggleFg = isDarkTheme ? Color.WHITE : Color.BLACK;
+        Color buttonBarBg = isDarkTheme ? Color.BLACK : new Color(240, 245, 250);
 
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        btn.setForeground(Color.BLACK);
-        btn.setBackground(bg);
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(180, 70));
+        codeArea.setBackground(bg);
+        codeArea.setForeground(fg);
+        codeArea.setCaretColor(fg);
+        resultArea.setBackground(bg);
+        resultArea.setForeground(resultFg);
 
-        return btn;
+        codeArea.setBorder(createGlowBorder(" Source Code "));
+        resultArea.setBorder(createGlowBorder(" Result Output "));
+
+        if (header != null) {
+            header.setBackground(headerBg);
+        }
+        if (buttonBar != null) {
+            buttonBar.setBackground(buttonBarBg);
+        }
+        if (titleLabel != null) {
+            titleLabel.setForeground(titleFg);
+        }
+        if (divider != null) {
+            divider.setForeground(new Color(255, 225, 0));
+        }
+        if (themeToggle != null) {
+            themeToggle.setForeground(toggleFg);
+        }
+
+        frame.getContentPane().setBackground(isDarkTheme ? new Color(30, 30, 30) : Color.WHITE);
+        SwingUtilities.updateComponentTreeUI(frame);
     }
 
     private static void createGUI() {
+        frame = new JFrame("Prism Compiler");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1450, 850);
+        frame.setMinimumSize(new Dimension(1000, 600));
 
-        JFrame f = new JFrame("MiniCompiler - Dark Theme");
-        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setSize(1200, 750);
+        // === HEADER ===
+        header = new JPanel(new BorderLayout());
+        header.setBackground(isDarkTheme ? Color.BLACK : Color.WHITE);
+        header.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
 
-        JPanel buttons = new JPanel(new GridLayout(5, 1, 12, 18));
-        buttons.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-        buttons.setBackground(Color.BLACK);
+        titleLabel = new JLabel("Prism Compiler");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(new Color(255, 225, 0));
+        header.add(titleLabel, BorderLayout.WEST);
 
-        JButton openBtn = createCurvyButton("Open<br>File", new Color(32, 190, 180));
-        JButton clearBtn = createCurvyButton("Clear", new Color(237, 42, 133));
+        themeToggle = new JLabel(isDarkTheme ? "Light" : "Dark");
+        themeToggle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        themeToggle.setForeground(isDarkTheme ? Color.WHITE : Color.BLACK);
+        themeToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        themeToggle.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                isDarkTheme = !isDarkTheme;
+                themeToggle.setText(isDarkTheme ? "Light" : "Dark");
+                themeToggle.setForeground(isDarkTheme ? Color.WHITE : Color.BLACK);
+                applyTheme();
+            }
+        });
+        header.add(themeToggle, BorderLayout.EAST);
+
+        // Divider
+        divider = new JSeparator();
+        divider.setForeground(new Color(255, 225, 0));
+
+        // === BUTTON BAR ===
+        buttonBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 20));
+        buttonBar.setBackground(isDarkTheme ? Color.BLACK : new Color(240, 245, 250));
+
+        CurvyButton openBtn  = new CurvyButton("Open File", new Color(255, 225, 0));
+        CurvyButton clearBtn = new CurvyButton("Clear",      new Color(255, 0, 0));
 
         lexicalBtn.setEnabled(false);
         syntaxBtn.setEnabled(false);
         semanticBtn.setEnabled(false);
 
-        buttons.add(openBtn);
-        buttons.add(lexicalBtn);
-        buttons.add(syntaxBtn);
-        buttons.add(semanticBtn);
-        buttons.add(clearBtn);
+        buttonBar.add(openBtn);
+        buttonBar.add(lexicalBtn);
+        buttonBar.add(syntaxBtn);
+        buttonBar.add(semanticBtn);
+        buttonBar.add(clearBtn);
 
-        // Output Area
+        // === TEXT AREAS ===
         resultArea.setEditable(false);
-        resultArea.setForeground(Color.CYAN);
-        resultArea.setBackground(Color.BLACK);
-        resultArea.setFont(new Font("Consolas", Font.PLAIN, 15));
-        resultArea.setBorder(createGlowBorder(" Result Output "));
+        resultArea.setFont(new Font("Courier", Font.PLAIN, 15));
+        codeArea.setFont(new Font("Courier", Font.PLAIN, 15));
 
-        // Input Area
-        codeArea.setForeground(Color.WHITE);
-        codeArea.setBackground(Color.BLACK);
-        codeArea.setFont(new Font("Consolas", Font.PLAIN, 15));
-        codeArea.setBorder(createGlowBorder(" Source Code "));
-        codeArea.setCaretColor(Color.WHITE);
-
-        JSplitPane rightSplit = new JSplitPane(
-                JSplitPane.VERTICAL_SPLIT,
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                 new JScrollPane(resultArea),
-                new JScrollPane(codeArea)
-        );
-        rightSplit.setDividerLocation(320);
+                new JScrollPane(codeArea));
+        splitPane.setDividerLocation(650);
+        splitPane.setResizeWeight(0.5);
 
-        JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buttons, rightSplit);
-        mainSplit.setDividerLocation(240);
+        // === FINAL LAYOUT ===
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(header, BorderLayout.NORTH);
+        topPanel.add(divider, BorderLayout.CENTER);
+        topPanel.add(buttonBar, BorderLayout.SOUTH);
 
-        f.add(mainSplit);
-        f.setLocationRelativeTo(null);
-        f.setVisible(true);
+        frame.setLayout(new BorderLayout());
+        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(splitPane, BorderLayout.CENTER);
 
-        // BUTTON ACTIONS
-        openBtn.addActionListener(e -> openFile(f));
+        // Apply theme only AFTER everything is added
+        applyTheme();
+
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+
+        // === ACTIONS ===
+        openBtn.addActionListener(e -> openFile(frame));
         clearBtn.addActionListener(e -> {
             codeArea.setText("");
             resultArea.setText("");
             tokens = null;
             resetButtons();
+            lexicalBtn.setCompleted(false);
+            syntaxBtn.setCompleted(false);
+            semanticBtn.setCompleted(false);
         });
 
         lexicalBtn.addActionListener(e -> runLexical());
@@ -155,6 +240,9 @@ public class SwingCompilerUI {
                 codeArea.setText(Files.readString(fc.getSelectedFile().toPath()));
                 resultArea.setText("File opened: " + fc.getSelectedFile().getName() + "\n\n");
                 resetButtons();
+                lexicalBtn.setCompleted(false);
+                syntaxBtn.setCompleted(false);
+                semanticBtn.setCompleted(false);
             } catch (Exception ex) {
                 resultArea.append("ERROR: " + ex.getMessage() + "\n");
             }
@@ -163,20 +251,16 @@ public class SwingCompilerUI {
 
     private static void runLexical() {
         resultArea.append("\n=== Running Lexical Analysis ===\n\n");
-
         try {
             tokens = LexicalAnalyzer.tokenize(codeArea.getText());
-
             if (!LexicalAnalyzer.isValidLexically(tokens)) {
-                resultArea.append("❌ Lexical analysis FAILED!\n");
-                resultArea.append("Unknown tokens found in the code.\n\n");
+                resultArea.append("Lexical analysis FAILED!\nUnknown tokens found.\n\n");
+                lexicalBtn.setCompleted(false);
                 return;
             }
-
-            resultArea.append("✓ Lexical Analysis Completed.\n");
-            resultArea.append("Tokens generated: " + tokens.size() + "\n\n");
+            resultArea.append("Lexical Analysis Completed.\nTokens: " + tokens.size() + "\n\n");
             syntaxBtn.setEnabled(true);
-
+            lexicalBtn.setCompleted(true);
         } catch (Exception ex) {
             resultArea.append("Lexical Error: " + ex.getMessage() + "\n");
             ex.printStackTrace();
@@ -185,17 +269,15 @@ public class SwingCompilerUI {
 
     private static void runSyntax() {
         resultArea.append("\n=== Running Syntax Analysis ===\n\n");
-
         try {
             if (!SyntaxAnalyzer.analyze(tokens)) {
-                resultArea.append("❌ Syntax analysis FAILED!\n");
-                resultArea.append("Invalid syntax structure detected.\n\n");
+                resultArea.append("Syntax analysis FAILED!\nInvalid syntax.\n\n");
+                syntaxBtn.setCompleted(false);
                 return;
             }
-
-            resultArea.append("✓ Syntax Analysis Completed.\n\n");
+            resultArea.append("Syntax Analysis Completed.\n\n");
             semanticBtn.setEnabled(true);
-
+            syntaxBtn.setCompleted(true);
         } catch (Exception ex) {
             resultArea.append("Syntax Error: " + ex.getMessage() + "\n");
             ex.printStackTrace();
@@ -204,17 +286,15 @@ public class SwingCompilerUI {
 
     private static void runSemantic() {
         resultArea.append("\n=== Running Semantic Analysis ===\n\n");
-
         try {
             if (!SemanticAnalyzer.analyze(tokens)) {
-                resultArea.append("❌ Semantic analysis FAILED!\n");
-                resultArea.append("Type mismatch or duplicate variable detected.\n\n");
+                resultArea.append("Semantic analysis FAILED!\nType mismatch or duplicate var.\n\n");
+                semanticBtn.setCompleted(false);
                 return;
             }
-
-            resultArea.append("✓ Semantic Analysis Completed.\n\n");
-            resultArea.append("🎉 ALL ANALYSES PASSED! COMPILATION SUCCESSFUL! 🎉\n\n");
-
+            resultArea.append("Semantic Analysis Completed.\n\n");
+            resultArea.append("ALL ANALYSES PASSED! COMPILATION SUCCESSFUL!\n\n");
+            semanticBtn.setCompleted(true);
         } catch (Exception ex) {
             resultArea.append("Semantic Error: " + ex.getMessage() + "\n");
             ex.printStackTrace();
