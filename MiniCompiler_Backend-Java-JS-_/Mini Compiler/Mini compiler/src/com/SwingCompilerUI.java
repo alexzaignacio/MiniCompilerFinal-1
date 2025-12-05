@@ -7,6 +7,8 @@ import com.model.Token;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -17,18 +19,12 @@ public class SwingCompilerUI {
     private static final JTextArea codeArea = new JTextArea();
     private static final JTextArea resultArea = new JTextArea();
 
-    // Theme state
     private static boolean isDarkTheme = true;
     private static JFrame frame;
-
-    // UI components for theme updates
-    private static JPanel header;
-    private static JPanel buttonBar;
-    private static JLabel titleLabel;
+    private static JPanel header, buttonBar, labelPanel;
+    private static JLabel titleLabel, themeToggle;
     private static JSeparator divider;
-    private static JLabel themeToggle;
 
-    // Custom Curvy Button
     private static class CurvyButton extends JButton {
         private final Color baseColor;
         private boolean completed = false;
@@ -57,7 +53,7 @@ public class SwingCompilerUI {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(completed ? baseColor.darker().darker() : baseColor);
+            g2.setColor(completed ? baseColor.darker().darker().darker() : baseColor);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 36, 36);
             super.paintComponent(g2);
             g2.dispose();
@@ -67,9 +63,9 @@ public class SwingCompilerUI {
         protected void paintBorder(Graphics g) {}
     }
 
-    private static final CurvyButton lexicalBtn = new CurvyButton("Lexical Analysis", new Color(255, 225, 0));
-    private static final CurvyButton syntaxBtn  = new CurvyButton("Syntax Analysis",  new Color(255, 225, 0));
-    private static final CurvyButton semanticBtn = new CurvyButton("Semantic Analysis", new Color(255, 225, 0));
+    private static final CurvyButton lexicalBtn = new CurvyButton("Lexical<br>Analysis", new Color(255, 225, 0));
+    private static final CurvyButton syntaxBtn  = new CurvyButton("Syntax<br>Analysis",  new Color(255, 225, 0));
+    private static final CurvyButton semanticBtn = new CurvyButton("Semantic<br>Analysis", new Color(255, 225, 0));
 
     public static void main(String[] args) {
         try {
@@ -78,50 +74,29 @@ public class SwingCompilerUI {
         SwingUtilities.invokeLater(SwingCompilerUI::createGUI);
     }
 
-    private static Border createGlowBorder(String title) {
-        Color glow = new Color(255, 225, 0);
-        Border line = BorderFactory.createLineBorder(glow, 2);
-        Border titled = BorderFactory.createTitledBorder(line, title, 0, 0,
-                new Font("Arial", Font.BOLD, 14), glow);
-        return BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(10, 10, 10, 10), titled);
-    }
-
-    // Safe theme updater — only touches components that exist
     private static void applyTheme() {
         if (frame == null) return;
 
         Color bg = isDarkTheme ? Color.BLACK : new Color(252, 252, 252);
         Color fg = isDarkTheme ? Color.WHITE : Color.BLACK;
-        Color resultFg = isDarkTheme ? Color.CYAN : new Color(0, 120, 215);
+        Color gold = new Color(255, 225, 0);
         Color headerBg = isDarkTheme ? Color.BLACK : Color.WHITE;
-        Color titleFg = new Color(255, 225, 0);
-        Color toggleFg = isDarkTheme ? Color.WHITE : Color.BLACK;
         Color buttonBarBg = isDarkTheme ? Color.BLACK : new Color(240, 245, 250);
 
         codeArea.setBackground(bg);
         codeArea.setForeground(fg);
         codeArea.setCaretColor(fg);
         resultArea.setBackground(bg);
-        resultArea.setForeground(resultFg);
+        resultArea.setForeground(isDarkTheme ? Color.CYAN : new Color(0, 120, 215));
 
-        codeArea.setBorder(createGlowBorder(" Source Code "));
-        resultArea.setBorder(createGlowBorder(" Result Output "));
-
-        if (header != null) {
-            header.setBackground(headerBg);
-        }
-        if (buttonBar != null) {
-            buttonBar.setBackground(buttonBarBg);
-        }
-        if (titleLabel != null) {
-            titleLabel.setForeground(titleFg);
-        }
-        if (divider != null) {
-            divider.setForeground(new Color(255, 225, 0));
-        }
+        if (header != null) header.setBackground(headerBg);
+        if (buttonBar != null) buttonBar.setBackground(buttonBarBg);
+        if (labelPanel != null) labelPanel.setBackground(buttonBarBg);
+        if (titleLabel != null) titleLabel.setForeground(gold);
+        if (divider != null) divider.setForeground(gold);
         if (themeToggle != null) {
-            themeToggle.setForeground(toggleFg);
+            themeToggle.setText(isDarkTheme ? "Light" : "Dark");
+            themeToggle.setForeground(isDarkTheme ? Color.WHITE : Color.BLACK);
         }
 
         frame.getContentPane().setBackground(isDarkTheme ? new Color(30, 30, 30) : Color.WHITE);
@@ -129,45 +104,43 @@ public class SwingCompilerUI {
     }
 
     private static void createGUI() {
-        frame = new JFrame("Prism Compiler");
+        frame = new JFrame("Thaeu Compiler");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1450, 850);
         frame.setMinimumSize(new Dimension(1000, 600));
 
         // === HEADER ===
         header = new JPanel(new BorderLayout());
-        header.setBackground(isDarkTheme ? Color.BLACK : Color.WHITE);
+        header.setBackground(Color.BLACK);
         header.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
 
-        titleLabel = new JLabel("Prism Compiler");
+        titleLabel = new JLabel("Thaeu Compiler");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         titleLabel.setForeground(new Color(255, 225, 0));
         header.add(titleLabel, BorderLayout.WEST);
 
-        themeToggle = new JLabel(isDarkTheme ? "Light" : "Dark");
+        themeToggle = new JLabel("Light");
         themeToggle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        themeToggle.setForeground(isDarkTheme ? Color.WHITE : Color.BLACK);
+        themeToggle.setForeground(Color.WHITE);
         themeToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         themeToggle.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+            public void mouseClicked(java.awt.event.MouseEvent e) {  // Fixed line
                 isDarkTheme = !isDarkTheme;
-                themeToggle.setText(isDarkTheme ? "Light" : "Dark");
-                themeToggle.setForeground(isDarkTheme ? Color.WHITE : Color.BLACK);
                 applyTheme();
             }
         });
         header.add(themeToggle, BorderLayout.EAST);
 
-        // Divider
+        // === DIVIDER ===
         divider = new JSeparator();
         divider.setForeground(new Color(255, 225, 0));
 
         // === BUTTON BAR ===
         buttonBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 20));
-        buttonBar.setBackground(isDarkTheme ? Color.BLACK : new Color(240, 245, 250));
+        buttonBar.setBackground(Color.BLACK);
 
-        CurvyButton openBtn  = new CurvyButton("Open File", new Color(255, 225, 0));
+        CurvyButton openBtn  = new CurvyButton("Open<br>File", new Color(255, 225, 0));
         CurvyButton clearBtn = new CurvyButton("Clear",      new Color(255, 0, 0));
 
         lexicalBtn.setEnabled(false);
@@ -180,30 +153,83 @@ public class SwingCompilerUI {
         buttonBar.add(semanticBtn);
         buttonBar.add(clearBtn);
 
-        // === TEXT AREAS ===
-        resultArea.setEditable(false);
-        resultArea.setFont(new Font("Courier", Font.PLAIN, 15));
-        codeArea.setFont(new Font("Courier", Font.PLAIN, 15));
+        // === LABEL PANEL ===
+        labelPanel = new JPanel(new GridLayout(1, 2));
+        labelPanel.setBackground(Color.BLACK);
+        labelPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
+        JLabel sourceLabel = new JLabel("Source Code", SwingConstants.CENTER);
+        sourceLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sourceLabel.setForeground(new Color(255, 225, 0));
+
+        JLabel resultLabel = new JLabel("Result Output", SwingConstants.CENTER);
+        resultLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        resultLabel.setForeground(new Color(255, 225, 0));
+
+        labelPanel.add(sourceLabel);
+        labelPanel.add(resultLabel);
+
+        // === LINE NUMBERS ===
+        JTextArea lineNumbers = new JTextArea("1");
+        lineNumbers.setBackground(new Color(40, 40, 40));
+        lineNumbers.setForeground(new Color(150, 150, 150));
+        lineNumbers.setEditable(false);
+        lineNumbers.setFont(new Font("Courier", Font.PLAIN, 15));
+
+        codeArea.setFont(new Font("Courier", Font.PLAIN, 15));
+        codeArea.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { updateLineNumbers(); }
+            public void removeUpdate(DocumentEvent e) { updateLineNumbers(); }
+            public void changedUpdate(DocumentEvent e) {}
+            private void updateLineNumbers() {
+                StringBuilder sb = new StringBuilder();
+                int lines = codeArea.getLineCount();
+                for (int i = 1; i <= lines; i++) sb.append(i).append('\n');
+                lineNumbers.setText(sb.toString());
+            }
+        });
+
+        // === SOURCE CODE PANEL WITH PADDING ===
+        JPanel codePanel = new JPanel(new BorderLayout());
+        codePanel.setBackground(isDarkTheme ? Color.BLACK : new Color(252, 252, 252));
+        codePanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        codePanel.add(new JScrollPane(codeArea), BorderLayout.CENTER);
+
+        JScrollPane codeScrollPane = new JScrollPane(codePanel);
+        codeScrollPane.setRowHeaderView(lineNumbers);
+        codeScrollPane.setBorder(BorderFactory.createLineBorder(new Color(255, 225, 0), 3));
+
+        // === RESULT PANEL WITH PADDING ===
+        JPanel resultPanel = new JPanel(new BorderLayout());
+        resultPanel.setBackground(isDarkTheme ? Color.BLACK : new Color(252, 252, 252));
+        resultPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        resultPanel.add(new JScrollPane(resultArea), BorderLayout.CENTER);
+
+        JScrollPane resultScrollPane = new JScrollPane(resultPanel);
+        resultScrollPane.setBorder(BorderFactory.createLineBorder(new Color(255, 225, 0), 3));
+
+        // === SPLIT PANE ===
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(resultArea),
-                new JScrollPane(codeArea));
-        splitPane.setDividerLocation(650);
+                codeScrollPane, resultScrollPane);
+        splitPane.setDividerLocation(700);
         splitPane.setResizeWeight(0.5);
+        splitPane.setBorder(null);
 
         // === FINAL LAYOUT ===
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(header, BorderLayout.NORTH);
-        topPanel.add(divider, BorderLayout.CENTER);
-        topPanel.add(buttonBar, BorderLayout.SOUTH);
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.add(header, BorderLayout.NORTH);
+        topSection.add(divider, BorderLayout.CENTER);
+        topSection.add(buttonBar, BorderLayout.SOUTH);
+
+        JPanel middleSection = new JPanel(new BorderLayout());
+        middleSection.add(topSection, BorderLayout.NORTH);
+        middleSection.add(labelPanel, BorderLayout.SOUTH);
 
         frame.setLayout(new BorderLayout());
-        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(middleSection, BorderLayout.NORTH);
         frame.add(splitPane, BorderLayout.CENTER);
 
-        // Apply theme only AFTER everything is added
         applyTheme();
-
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
@@ -211,7 +237,6 @@ public class SwingCompilerUI {
         openBtn.addActionListener(e -> openFile(frame));
         clearBtn.addActionListener(e -> {
             codeArea.setText("");
-            codeArea.setEditable(true);
             resultArea.setText("");
             tokens = null;
             resetButtons();
@@ -224,11 +249,11 @@ public class SwingCompilerUI {
         syntaxBtn.addActionListener(e -> runSyntax());
         semanticBtn.addActionListener(e -> runSemantic());
 
-        codeArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {}
-            private void update() {
+        codeArea.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { updateEnable(); }
+            public void removeUpdate(DocumentEvent e) { updateEnable(); }
+            public void changedUpdate(DocumentEvent e) {}
+            private void updateEnable() {
                 lexicalBtn.setEnabled(!codeArea.getText().trim().isEmpty());
             }
         });
@@ -239,7 +264,6 @@ public class SwingCompilerUI {
         if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
             try {
                 codeArea.setText(Files.readString(fc.getSelectedFile().toPath()));
-                codeArea.setEditable(false);
                 resultArea.setText("File opened: " + fc.getSelectedFile().getName() + "\n\n");
                 resetButtons();
                 lexicalBtn.setCompleted(false);
